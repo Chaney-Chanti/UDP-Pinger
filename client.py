@@ -17,12 +17,13 @@ numPings = int(numPings)
 clientSocket = socket(AF_INET, SOCK_DGRAM)
 clientSocket.settimeout(1) # sets the timeout to 1 second
 sucConn = False
+numLostPackets = 0
 
 pingTimes = []
 # Send and receive 10 requests.
 for i in range(numPings):
     startTime = time() # Retrieve the current time
-    message = "Chaney " + str(i+1) + ' ' + str(date.today()) + " " + ctime(startTime)[11:19]
+    message = "Chaney " + str(i+1) + ' ' + str(date.today().strftime('%A')) + ' ' + str(date.today().strftime("%b")) + ' ' + str(date.today().day) + " " + ctime(startTime)[11:19] + ' ' + str(date.today().year)
     try:
         # Sending the message and waiting for the answer
         clientSocket.sendto(message.encode(),(serverHost, int(serverPort)))
@@ -34,8 +35,10 @@ for i in range(numPings):
         # Modified message is decoded.
         # Prints the RTT
         modifiedMessage = encodedModified.decode()
-        print('Chaney %i: server reply: ' % (i+1) + modifiedMessage + ', ' + "RTT = %.3f ms\n" % ((endTime - startTime)*1000))
+        print('Chaney %i: server reply: ' % (i+1) + modifiedMessage + ', ' + "RTT = %.3f ms" % ((endTime - startTime)*1000))
         pingTimes.append(float((endTime - startTime)*1000))
+        if float((endTime - startTime)*1000) >= 1:
+            numLostPackets += 1
 
     except:
         print("PING %i Request timed out\n" % (i+1))
@@ -44,25 +47,10 @@ for i in range(numPings):
 
 if sucConn == True:
     print('Summary:')
-    print("Min Trip Time: %.3f ms" % (min(pingTimes)))
-    print("Max Trip Time: %.3f ms" % (max(pingTimes)))
-    print("Avg Trip Time: %.3f ms" % (statistics.mean(pingTimes)))
-    print("Percentage Packet Loss Rate: %.3f ms" % ((endTime - startTime)*1000))
+    print("Min RTT =  %.3f ms" % (min(pingTimes)))
+    print("Max RTT = : %.3f ms" % (max(pingTimes)))
+    print("Avg RTT = : %.3f ms" % (statistics.mean(pingTimes)))
+    print("Packet lost =  %.3f" % (numLostPackets / numPings) + '%')
 
 
 clientSocket.close()
-
-#Reqs:
-    #Info:
-    # send a specified number of poings
-    # client cannot wait indeinitley for a reply to a ping message
-    # (wait 1 second for a reply, if not packet, assume it was lost)
-#Send the ping message using UDP
-
-# print the response message from server if any was received
-# calcualte and print the RTT, in milliseconds of each packet if the server respones otherwise print timeout
-# provide a summary report at the end of all pings which includes
-#     Min RTT
-#     Max RTT
-#     average RTT
-#     percentage packet loss rate
