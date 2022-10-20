@@ -1,36 +1,29 @@
-# This is the UDP client program.
-# This sends the message to the sever.
-# This program calculates RTT of the different messages.
-# It then prints the RTT of each request.
-# If the waiting time is more than 1 second then the packet is considered lost and a time out is issued.
-
-# Import socket module
-# Import time and ctime to retrieve time
-# Import sys to retrieve the arguments
 from socket import *
 from time import time, ctime
+from datetime import date
 import sys
+import statistics
 
-# Inputs three arguments.
-
-if (len(sys.argv) != 3):
+# Inputs four arguments.
+if (len(sys.argv) != 4):
     print(len(sys.argv))
     print("Wrong number of arguments.")
-    print("Use: UDPPingClient.py <server_host> <server_port>")
+    print("Use: client.py <server_host> <server_port> <num_pings>")
     sys.exit()
 
 # Preparing the socket
-serverHost, serverPort = sys.argv[1:]
+serverHost, serverPort, numPings = sys.argv[1:]
+numPings = int(numPings)
 clientSocket = socket(AF_INET, SOCK_DGRAM)
-clientSocket.settimeout(1)
+clientSocket.settimeout(1) # sets the timeout to 1 second
+sucConn = False
 
+pingTimes = []
 # Send and receive 10 requests.
-for i in range(10):
+for i in range(numPings):
     startTime = time() # Retrieve the current time
-    message = "Ping " + str(i+1) + " " + ctime(startTime)[11:19]
-
+    message = "Chaney " + str(i+1) + ' ' + str(date.today()) + " " + ctime(startTime)[11:19]
     try:
-
         # Sending the message and waiting for the answer
         clientSocket.sendto(message.encode(),(serverHost, int(serverPort)))
         encodedModified, serverAddress = clientSocket.recvfrom(1024)
@@ -38,14 +31,24 @@ for i in range(10):
         # Checking the current time and if the server answered
         endTime = time()
 
-        # Modified message is  decoded.
-        modifiedMessage = encodedModified.decode()
-        print(modifiedMessage)
-
+        # Modified message is decoded.
         # Prints the RTT
-        print("Round Trip Time: %.3f ms\n" % ((endTime - startTime)*1000))
+        modifiedMessage = encodedModified.decode()
+        print('Chaney %i: server reply: ' % (i+1) + modifiedMessage + ', ' + "RTT = %.3f ms\n" % ((endTime - startTime)*1000))
+        pingTimes.append(float((endTime - startTime)*1000))
+
     except:
         print("PING %i Request timed out\n" % (i+1))
+        
+    if i == numPings - 1: sucConn = True
+
+if sucConn == True:
+    print('Summary:')
+    print("Min Trip Time: %.3f ms" % (min(pingTimes)))
+    print("Max Trip Time: %.3f ms" % (max(pingTimes)))
+    print("Avg Trip Time: %.3f ms" % (statistics.mean(pingTimes)))
+    print("Percentage Packet Loss Rate: %.3f ms" % ((endTime - startTime)*1000))
+
 
 clientSocket.close()
 
@@ -59,7 +62,7 @@ clientSocket.close()
 # print the response message from server if any was received
 # calcualte and print the RTT, in milliseconds of each packet if the server respones otherwise print timeout
 # provide a summary report at the end of all pings which includes
-#     min RTT
+#     Min RTT
 #     Max RTT
 #     average RTT
 #     percentage packet loss rate
